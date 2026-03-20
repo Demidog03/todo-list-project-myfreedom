@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,200;0,300;0,400;0,600;0,700;0,900;1,200;1,300;1,400;1,600;1,700&display=swap');
+:root {
+    --dark-theme-text-color: #ffffff;
+    --dark-theme-bg-color: #37353E;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    color: var(--dark-theme-text-color);
+    font-family: "Titillium Web", sans-serif;
+}
+
+body {
+    background-color: var(--dark-theme-bg-color);
+}
+
+.container {
+    max-width: 900px;
+    margin-inline: auto;
+    padding: 40px 20px;
+}
+
+.container h1 {
+    font-weight: 700;
+    font-size: 3rem;
+    margin-bottom: 20px;
+    letter-spacing: 3px;
+}
+
+.todoInput {
+    padding: 20px 10px;
+    font-size: 1.5rem;
+    background-color: #44444E;
+    border: 2px solid #D3DAD9;
+    width: 100%;
+    border-radius: 15px;
+    transition: background-color 0.3s ease-out;
+    letter-spacing: 1px;
+}
+
+.todoInput:focus {
+    outline: none;
+    background-color: #2b2b33;
+}
+
+.todoInput::placeholder {
+    color: #D3DAD9;
+    letter-spacing: 1px;
+}
+
+.todoAddButton {
+    background-color: #715A5A;
+    border: none;
+    padding: 20px 12px;
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+    font-weight: 700;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: background-color 0.2s ease-out, transform 0.3s ease-out;
+}
+
+.todoAddButton:hover {
+    background-color: rgb(117, 97, 97);
+    transform: scale(1.05);
+}
+
+.todoForm {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 50px;
+}
+
+.todoList {
+    list-style-type: none;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.todoList li {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background-color: #D3DAD9;
+    padding: 10px 10px;
+    color: var(--dark-theme-bg-color);
+    border-radius: 12px;
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+.todoList li .removeBtn {
+    border: none;
+    background-color: #740A03;
+    font-weight: 700;
+    font-size: 1.2rem;
+    padding-inline: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s ease-out, transform 0.3s ease-out;
+}
+
+.todoList li .removeBtn:hover {
+    background-color: #8b1209;
+    transform: scale(1.05);
+}
