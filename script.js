@@ -5,6 +5,8 @@
 const todoAddButton = document.querySelector('#todoAddButton')
 const todoInput = document.querySelector('#todoInput')
 const todoList = document.querySelector('#todoList')
+const spinnerSvg = document.querySelector('#spinnerSvg')
+const noDataText = document.querySelector('#noDataText')
 
 // Первоначальный рендер (отрисовка) задач
 renderTasks()
@@ -13,7 +15,6 @@ todoAddButton.addEventListener('click', (event) => {
     event.preventDefault()
 
     addNewTask()
-    renderTasks()
 })
 
 function addNewTask() {
@@ -24,21 +25,39 @@ function addNewTask() {
         return
     }
 
-    const lsTasks = JSON.parse(localStorage.getItem('tasks') || '[]')
+    const bodyJSON = JSON.stringify(
+        {
+            text: text
+        }
+    )
 
-    // Сохраняем данные в localStorage
-    const newLSTasks = JSON.stringify([...lsTasks, { id: Date.now(), text: text, status: 'Working' }])
-    localStorage.setItem('tasks', newLSTasks)
+    startSpinner()
+
+    // Отправляем POST запрос
+    fetch('http://localhost:6767/api/todos', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: bodyJSON
+    }).finally(() => {
+        stopSpinner()
+        renderTasks()
+    })
 
     todoInput.value = ''
 }
 
 function removeTask(task) {
-    const lsTasks = JSON.parse(localStorage.getItem('tasks') || '[]')
+    // Отправка запроса на удаление элемента
+    startSpinner()
 
-    // Удалении задачи из localStorage
-    const filteredTasks = JSON.stringify(lsTasks.filter(t => t.id !== task.id))
-    localStorage.setItem('tasks', filteredTasks)
+    fetch(`http://localhost:6767/api/todos/${task.id}`, {
+        method: 'DELETE'
+    }).finally(() => {
+        stopSpinner()
+        renderTasks()
+    })
 }
 
 function changeTaskStatus(task, newStatus) {
@@ -55,59 +74,85 @@ function renderTasks() {
     // При каждом рендере очищать список
     todoList.innerHTML = ''
 
-    const lsTasks = JSON.parse(localStorage.getItem('tasks') || '[]')
+    startSpinner()
 
-    for (const task of lsTasks) {
-        // Добавляем текст
-        const li = document.createElement('li')
-        li.innerText = task.text
+    fetch('http://localhost:6767/api/todos', {
+        method: 'GET'
+    }).then(response => {
+        return response.json()
+    }).then(backendData => {
+        const lsTasks = backendData
 
-        const buttonsContainer = document.createElement('div')
-        buttonsContainer.classList.add('buttonsContainer')
+        console.log(lsTasks)
 
-        // Добавляем кнопку completed
-        if (task.status === 'Completed') {
-            const completedBtn = document.createElement('button')
-            completedBtn.classList.add('completedBtn')
-            completedBtn.innerText = 'Completed'
-            buttonsContainer.appendChild(completedBtn)
+        for (const task of lsTasks) {
+            // Добавляем текст
+            const li = document.createElement('li')
+            li.innerText = task.text
 
-            completedBtn.addEventListener('click', () => {
-                changeTaskStatus(task, 'Working')
-                renderTasks()
+            const buttonsContainer = document.createElement('div')
+            buttonsContainer.classList.add('buttonsContainer')
+
+            // Добавляем кнопку completed
+            if (task.status === 'completed') {
+                const completedBtn = document.createElement('button')
+                completedBtn.classList.add('completedBtn')
+                completedBtn.innerText = 'Completed'
+                buttonsContainer.appendChild(completedBtn)
+
+                completedBtn.addEventListener('click', () => {
+                    changeTaskStatus(task, 'Working')
+                    renderTasks()
+                })
+            }
+            else if (task.status === 'in-progress') {
+                const workingBtn = document.createElement('button')
+                workingBtn.classList.add('workingBtn')
+                workingBtn.innerText = 'Working'
+                buttonsContainer.appendChild(workingBtn)
+
+                workingBtn.addEventListener('click', () => {
+                    changeTaskStatus(task, 'Completed')
+                    renderTasks()
+                })
+            }
+
+            // Добавляем кнопку удаления
+            const removeBtn = document.createElement('button')
+            removeBtn.classList.add('removeBtn')
+            removeBtn.innerText = 'Remove'
+            buttonsContainer.appendChild(removeBtn)
+
+            li.appendChild(buttonsContainer)
+
+            // Добавляем событие для removeBtn
+            removeBtn.addEventListener('click', () => {
+                removeTask(task)
             })
+
+            // В список добавляем готовый li
+            todoList.appendChild(li)
         }
-        else if (task.status === 'Working') {
-            const workingBtn = document.createElement('button')
-            workingBtn.classList.add('workingBtn')
-            workingBtn.innerText = 'Working'
-            buttonsContainer.appendChild(workingBtn)
 
-            workingBtn.addEventListener('click', () => {
-                changeTaskStatus(task, 'Completed')
-                renderTasks()
-            })
+        if (lsTasks.length < 1) {
+            noDataText.classList.remove('hidden')
         }
-        
-        // Добавляем кнопку удаления
-        const removeBtn = document.createElement('button')
-        removeBtn.classList.add('removeBtn')
-        removeBtn.innerText = 'Remove'
-        buttonsContainer.appendChild(removeBtn)
+    }).catch(error => {
+        alert(error || 'Ошибка во время получения списка задач!')
 
-        li.appendChild(buttonsContainer)
-
-        // Добавляем событие для removeBtn
-        removeBtn.addEventListener('click', () => {
-            removeTask(task)
-            renderTasks()
-        })
-
-        // В список добавляем готовый li
-        todoList.appendChild(li)
-    }
+        noDataText.classList.remove('hidden')
+    }).finally(() => {
+        stopSpinner()
+    })
 }
 
+function startSpinner() {
+    spinnerSvg.classList.remove('hidden')
+}
+
+function stopSpinner() {
+    spinnerSvg.classList.add('hidden')
+}
 
 // localStorage.setItem('student', 'Arman')
 // localStorage.setItem('student', 'Kairat')

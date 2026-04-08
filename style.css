@@ -136,3 +136,13 @@ body {
     display: flex;
     gap: 10px;
 }
+
+.spinner-svg {
+    width: 50px;
+    margin: 20px auto;
+    display: block;
+}
+
+.hidden {
+    display: none !important;
+}
