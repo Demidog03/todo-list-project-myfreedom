@@ -11,139 +11,148 @@ const noDataText = document.querySelector('#noDataText')
 // Первоначальный рендер (отрисовка) задач
 renderTasks()
 
-todoAddButton.addEventListener('click', (event) => {
+todoAddButton.addEventListener('click', async (event) => {
     event.preventDefault()
 
-    addNewTask()
+    await addNewTask()
+    renderTasks()
 })
 
-function addNewTask() {
-    const text = todoInput.value.trim()
+async function addNewTask() {
+    try {
+        const text = todoInput.value.trim()
 
-    if (!text) {
-        alert('Заполните поле с задачей!')
-        return
+        if (!text) {
+            alert('Заполните поле с задачей!')
+            return
+        }
+
+        const bodyJSON = JSON.stringify(
+            {
+                text: text
+            }
+        )
+
+        startSpinner()
+
+        // Отправляем POST запрос
+        await fetch('http://localhost:6767/api/todos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: bodyJSON
+        })
+
+        todoInput.value = ''
     }
-
-    const bodyJSON = JSON.stringify(
-        {
-            text: text
-        }
-    )
-
-    startSpinner()
-
-    // Отправляем POST запрос
-    fetch('http://localhost:6767/api/todos', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: bodyJSON
-    }).finally(() => {
+    catch(error) {
+        alert('Ошибка при создании задачи')
+    }
+    finally {
         stopSpinner()
-        renderTasks()
-    })
-
-    todoInput.value = ''
+    }
 }
 
-function removeTask(task) {
-    // Отправка запроса на удаление элемента
-    startSpinner()
+async function removeTask(task) {
+    try {
+        // Отправка запроса на удаление элемента
+        startSpinner()
 
-    fetch(`http://localhost:6767/api/todos/${task.id}`, {
-        method: 'DELETE'
-    }).finally(() => {
+        await fetch(`http://localhost:6767/api/todos/${task.id}`, {
+            method: 'DELETE'
+        })
+    }
+    catch (error) {
+        alert('Ошибка при удалении задачи')
+    }
+    finally {
         stopSpinner()
-        renderTasks()
-    })
+    }
 }
 
-function changeTaskStatus(task, newStatus) {
-    const lsTasks = JSON.parse(localStorage.getItem('tasks') || '[]')
-    const taskToChange = lsTasks.find(t => t.id === task.id)
-    taskToChange.status = newStatus
+async function changeTaskStatus(task, newStatus) {
+    try {
+        startSpinner()
 
-    // Меняем статус задачи из localStorage
-    const filteredTasks = JSON.stringify([...lsTasks])
-    localStorage.setItem('tasks', filteredTasks)
-}
-
-function renderTasks() {
-    // При каждом рендере очищать список
-    todoList.innerHTML = ''
-
-    startSpinner()
-
-    fetch('http://localhost:6767/api/todos', {
-        method: 'GET'
-    }).then(response => {
-        return response.json()
-    }).then(backendData => {
-        const lsTasks = backendData
-
-        console.log(lsTasks)
-
-        for (const task of lsTasks) {
-            // Добавляем текст
-            const li = document.createElement('li')
-            li.innerText = task.text
-
-            const buttonsContainer = document.createElement('div')
-            buttonsContainer.classList.add('buttonsContainer')
-
-            // Добавляем кнопку completed
-            if (task.status === 'completed') {
-                const completedBtn = document.createElement('button')
-                completedBtn.classList.add('completedBtn')
-                completedBtn.innerText = 'Completed'
-                buttonsContainer.appendChild(completedBtn)
-
-                completedBtn.addEventListener('click', () => {
-                    changeTaskStatus(task, 'Working')
-                    renderTasks()
-                })
-            }
-            else if (task.status === 'in-progress') {
-                const workingBtn = document.createElement('button')
-                workingBtn.classList.add('workingBtn')
-                workingBtn.innerText = 'Working'
-                buttonsContainer.appendChild(workingBtn)
-
-                workingBtn.addEventListener('click', () => {
-                    changeTaskStatus(task, 'Completed')
-                    renderTasks()
-                })
-            }
-
-            // Добавляем кнопку удаления
-            const removeBtn = document.createElement('button')
-            removeBtn.classList.add('removeBtn')
-            removeBtn.innerText = 'Remove'
-            buttonsContainer.appendChild(removeBtn)
-
-            li.appendChild(buttonsContainer)
-
-            // Добавляем событие для removeBtn
-            removeBtn.addEventListener('click', () => {
-                removeTask(task)
+        await fetch(`http://localhost:6767/api/todos/${task.id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                status: newStatus
             })
-
-            // В список добавляем готовый li
-            todoList.appendChild(li)
-        }
-
-        if (lsTasks.length < 1) {
-            noDataText.classList.remove('hidden')
-        }
-    }).catch(error => {
-        alert(error || 'Ошибка во время получения списка задач!')
-
-        noDataText.classList.remove('hidden')
-    }).finally(() => {
+        })
+    }
+    catch {
+        alert('Ошибка при изменении статуса')
+    }
+    finally {
         stopSpinner()
-    })
+    }
+}
+
+async function renderTasks() {
+    todoList.innerHTML = '';
+    startSpinner();
+    noDataText.classList.add('hidden');
+
+    try {
+        const response = await fetch('http://localhost:6767/api/todos');
+        if (!response.ok) throw new Error('Ошибка сервера');
+
+        const lsTasks = await response.json();
+
+        if (lsTasks.length === 0) {
+            noDataText.classList.remove('hidden');
+            return;
+        }
+
+        lsTasks.forEach(task => {
+            const li = document.createElement('li');
+            li.innerText = task.text;
+
+            const buttonsContainer = document.createElement('div');
+            buttonsContainer.classList.add('buttonsContainer');
+
+            const statusBtn = document.createElement('button');
+            if (task.status === 'completed') {
+                statusBtn.classList.add('completedBtn');
+                statusBtn.innerText = 'Completed';
+                statusBtn.onclick = async () => {
+                    await changeTaskStatus(task, 'in-progress');
+                    renderTasks();
+                };
+            } else {
+                statusBtn.classList.add('workingBtn');
+                statusBtn.innerText = 'Working';
+                statusBtn.onclick = async () => {
+                    await changeTaskStatus(task, 'completed');
+                    renderTasks();
+                };
+            }
+
+            const removeBtn = document.createElement('button');
+            removeBtn.classList.add('removeBtn');
+            removeBtn.innerText = 'Remove';
+            removeBtn.onclick = async () => {
+                await removeTask(task);
+                renderTasks();
+            };
+
+            buttonsContainer.append(statusBtn, removeBtn);
+            li.appendChild(buttonsContainer);
+            todoList.appendChild(li);
+        });
+
+    } catch (error) {
+        console.error(error);
+        alert('Ошибка во время получения списка задач!');
+        noDataText.classList.remove('hidden');
+    } finally {
+        stopSpinner();
+    }
 }
 
 function startSpinner() {
